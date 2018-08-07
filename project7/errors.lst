@@ -1,0 +1,127 @@
+   1               		.file	"errors.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               	.global	ReportError
+  12               	ReportError:
+  13               	.LFB0:
+  14               		.file 1 "errors.c"
+   1:errors.c      **** /******************************************************************************
+   2:errors.c      ****  * File Name:	errors.c
+   3:errors.c      ****  * Program:		Project for Fundamentals of Embedded Systems class
+   4:errors.c      ****  * Author:		Robert Weber
+   5:errors.c      ****  * Purpose:		Contains error-handling functions
+   6:errors.c      ****  *
+   7:errors.c      ****  *  Date	 By:		Changes:
+   8:errors.c      ****  * --------- ----------	-------------------------------------------------------
+   9:errors.c      ****  * 21 Jul 02 R Weber	Initial file
+  10:errors.c      ****  * 18 Feb 04 T Lill		modified for Winter 04 session
+  11:errors.c      ****  * 09 May 05 T Lill		Removed deprecated functions.
+  12:errors.c      ****  * 13 Mar 11 T Lill		Use port D for LEDs
+  13:errors.c      ****  ******************************************************************************/
+  14:errors.c      **** #include "lib.h"
+  15:errors.c      **** #include "errors.h"
+  16:errors.c      **** 
+  17:errors.c      **** eErrorType SystemError = NO_ERROR;
+  18:errors.c      **** 
+  19:errors.c      **** /*****************************************************************************
+  20:errors.c      ****  * Error handler
+  21:errors.c      ****  *****************************************************************************/
+  22:errors.c      **** void ReportError(eErrorType iError)
+  23:errors.c      **** {
+  15               		.loc 1 23 0
+  16               		.cfi_startproc
+  17               	.LVL0:
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+  24:errors.c      **** 	// Only allow 1 error to be logged at one time
+  25:errors.c      **** 	if (SystemError == NO_ERROR)
+  22               		.loc 1 25 0
+  23 0000 9091 0000 		lds r25,SystemError
+  24 0004 9111      		cpse r25,__zero_reg__
+  25 0006 00C0      		rjmp .L1
+  26:errors.c      **** 	{    /* Record error and set error LED */
+  27:errors.c      **** 		SystemError = iError;
+  26               		.loc 1 27 0
+  27 0008 8093 0000 		sts SystemError,r24
+  28:errors.c      **** 		CLEAR_BIT(PORTD, ERROR_LED_BIT);
+  28               		.loc 1 28 0
+  29 000c 5998      		cbi 0xb,1
+  30               	.L1:
+  31 000e 0895      		ret
+  32               		.cfi_endproc
+  33               	.LFE0:
+  35               	.global	ClearError
+  37               	ClearError:
+  38               	.LFB1:
+  29:errors.c      **** 	}
+  30:errors.c      **** }
+  31:errors.c      **** 
+  32:errors.c      **** void ClearError(void)
+  33:errors.c      **** {
+  39               		.loc 1 33 0
+  40               		.cfi_startproc
+  41               	/* prologue: function */
+  42               	/* frame size = 0 */
+  43               	/* stack size = 0 */
+  44               	.L__stack_usage = 0
+  34:errors.c      **** 	/* Record error and set error LED */
+  35:errors.c      **** 	SystemError = NO_ERROR;
+  45               		.loc 1 35 0
+  46 0010 1092 0000 		sts SystemError,__zero_reg__
+  36:errors.c      **** 	SET_BIT(PORTD, ERROR_LED_BIT);
+  47               		.loc 1 36 0
+  48 0014 599A      		sbi 0xb,1
+  49 0016 0895      		ret
+  50               		.cfi_endproc
+  51               	.LFE1:
+  53               	.global	GetError
+  55               	GetError:
+  56               	.LFB2:
+  37:errors.c      **** }
+  38:errors.c      **** 
+  39:errors.c      **** eErrorType GetError(void)
+  40:errors.c      **** {
+  57               		.loc 1 40 0
+  58               		.cfi_startproc
+  59               	/* prologue: function */
+  60               	/* frame size = 0 */
+  61               	/* stack size = 0 */
+  62               	.L__stack_usage = 0
+  41:errors.c      **** 	/* Record error and set error LED */
+  42:errors.c      **** 	return SystemError;
+  43:errors.c      **** }
+  63               		.loc 1 43 0
+  64 0018 8091 0000 		lds r24,SystemError
+  65 001c 0895      		ret
+  66               		.cfi_endproc
+  67               	.LFE2:
+  69               	.global	SystemError
+  70               		.section .bss
+  73               	SystemError:
+  74 0000 00        		.zero	1
+  75               		.text
+  76               	.Letext0:
+  77               		.file 2 "/usr/lib/avr/include/stdint.h"
+  78               		.file 3 "errors.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 errors.c
+     /tmp/ccJdaFOr.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccJdaFOr.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccJdaFOr.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccJdaFOr.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccJdaFOr.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccJdaFOr.s:12     .text:0000000000000000 ReportError
+     /tmp/ccJdaFOr.s:73     .bss:0000000000000000 SystemError
+     /tmp/ccJdaFOr.s:37     .text:0000000000000010 ClearError
+     /tmp/ccJdaFOr.s:55     .text:0000000000000018 GetError
+
+UNDEFINED SYMBOLS
+__do_clear_bss

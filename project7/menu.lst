@@ -1,0 +1,985 @@
+   1               		.file	"menu.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.rodata.str1.1,"aMS",@progbits,1
+  11               	.LC0:
+  12 0000 3F00      		.string	"?"
+  13               	.LC1:
+  14 0002 6765 00   		.string	"ge"
+  15               	.LC2:
+  16 0005 6365 00   		.string	"ce"
+  17               	.LC3:
+  18 0008 7763 00   		.string	"wc"
+  19               	.LC4:
+  20 000b 7263 00   		.string	"rc"
+  21               	.LC5:
+  22 000e 5365 676D 		.string	"Segment Data = %X%X%X%X\n\r"
+  22      656E 7420 
+  22      4461 7461 
+  22      203D 2025 
+  22      5825 5825 
+  23               		.text
+  24               	.global	RunMenu
+  26               	RunMenu:
+  27               	.LFB6:
+  28               		.file 1 "menu.c"
+   1:menu.c        **** /******************************************************************************
+   2:menu.c        ****  * File Name:	menu.c
+   3:menu.c        ****  * Program:		Project for Fundamentals of Embedded Systems class
+   4:menu.c        ****  * Author:		Robert Weber
+   5:menu.c        ****  * Purpose:		Contains menu functions.
+   6:menu.c        ****  *
+   7:menu.c        ****  *  Date	Changed by:		Changes:
+   8:menu.c        ****  * -------	-----------		----------------------------------------------------
+   9:menu.c        ****  * 17 Aug 03	R Weber		Copied from 68HC11 code.
+  10:menu.c        ****  * 01 Sep 04	T Lill		Added * and ? to lcd menu option
+  11:menu.c        ****  * 22 May 06	T Lill		Modified menu system to display 2 lines per loop. 
+  12:menu.c        ****  *							Changed 'debug' prompt to 'cmd.'
+  13:menu.c        ****  * 09 Nov 10	T Lill		Converted program to ATmega2560
+  14:menu.c        ****  ******************************************************************************/
+  15:menu.c        **** #include "string.h"
+  16:menu.c        **** #include "stdlib.h"
+  17:menu.c        **** #include "stdio.h"
+  18:menu.c        **** 
+  19:menu.c        **** #include "lib.h"
+  20:menu.c        **** #include "serial.h"
+  21:menu.c        **** #include "errors.h"
+  22:menu.c        **** #include "menu.h"
+  23:menu.c        **** #include "lcd.h"
+  24:menu.c        **** #include "my_eeprom.h"
+  25:menu.c        **** 
+  26:menu.c        **** #define MAX_MEM_SIZE 0x20
+  27:menu.c        **** 
+  28:menu.c        **** // Enumeration for the menuing system
+  29:menu.c        **** typedef enum {
+  30:menu.c        ****     TOP_MENU,
+  31:menu.c        ****     DISPLAY_HELP_MENU1,
+  32:menu.c        ****     DISPLAY_HELP_MENU2,
+  33:menu.c        ****     DISPLAY_HELP_MENU3,
+  34:menu.c        **** 	GET_CHAR_FOR_EEPROM,
+  35:menu.c        **** 	GET_EEPROM_READ_ADDR,
+  36:menu.c        **** 	GET_EEPROM_WRITE_ADDR
+  37:menu.c        **** } DebugMenuStateType;
+  38:menu.c        **** 
+  39:menu.c        **** /******************************************************************************
+  40:menu.c        ****  * Processes keypresses received via RS-232. Implements a menuing system.
+  41:menu.c        ****  ******************************************************************************/
+  42:menu.c        **** static char zInputStr[MAX_IN_STR_SIZE];
+  43:menu.c        **** static char *ptrInputStr = zInputStr;
+  44:menu.c        **** static DebugMenuStateType MenuState = TOP_MENU;
+  45:menu.c        **** static unsigned EEPROMAddr;
+  46:menu.c        **** static char LCDChar;
+  47:menu.c        **** 
+  48:menu.c        **** void RunMenu(void)
+  49:menu.c        **** {
+  29               		.loc 1 49 0
+  30               		.cfi_startproc
+  31 0000 4F92      		push r4
+  32               	.LCFI0:
+  33               		.cfi_def_cfa_offset 3
+  34               		.cfi_offset 4, -2
+  35 0002 5F92      		push r5
+  36               	.LCFI1:
+  37               		.cfi_def_cfa_offset 4
+  38               		.cfi_offset 5, -3
+  39 0004 6F92      		push r6
+  40               	.LCFI2:
+  41               		.cfi_def_cfa_offset 5
+  42               		.cfi_offset 6, -4
+  43 0006 7F92      		push r7
+  44               	.LCFI3:
+  45               		.cfi_def_cfa_offset 6
+  46               		.cfi_offset 7, -5
+  47 0008 8F92      		push r8
+  48               	.LCFI4:
+  49               		.cfi_def_cfa_offset 7
+  50               		.cfi_offset 8, -6
+  51 000a 9F92      		push r9
+  52               	.LCFI5:
+  53               		.cfi_def_cfa_offset 8
+  54               		.cfi_offset 9, -7
+  55 000c AF92      		push r10
+  56               	.LCFI6:
+  57               		.cfi_def_cfa_offset 9
+  58               		.cfi_offset 10, -8
+  59 000e BF92      		push r11
+  60               	.LCFI7:
+  61               		.cfi_def_cfa_offset 10
+  62               		.cfi_offset 11, -9
+  63 0010 CF92      		push r12
+  64               	.LCFI8:
+  65               		.cfi_def_cfa_offset 11
+  66               		.cfi_offset 12, -10
+  67 0012 DF92      		push r13
+  68               	.LCFI9:
+  69               		.cfi_def_cfa_offset 12
+  70               		.cfi_offset 13, -11
+  71 0014 EF92      		push r14
+  72               	.LCFI10:
+  73               		.cfi_def_cfa_offset 13
+  74               		.cfi_offset 14, -12
+  75 0016 FF92      		push r15
+  76               	.LCFI11:
+  77               		.cfi_def_cfa_offset 14
+  78               		.cfi_offset 15, -13
+  79 0018 0F93      		push r16
+  80               	.LCFI12:
+  81               		.cfi_def_cfa_offset 15
+  82               		.cfi_offset 16, -14
+  83 001a 1F93      		push r17
+  84               	.LCFI13:
+  85               		.cfi_def_cfa_offset 16
+  86               		.cfi_offset 17, -15
+  87 001c CF93      		push r28
+  88               	.LCFI14:
+  89               		.cfi_def_cfa_offset 17
+  90               		.cfi_offset 28, -16
+  91 001e DF93      		push r29
+  92               	.LCFI15:
+  93               		.cfi_def_cfa_offset 18
+  94               		.cfi_offset 29, -17
+  95 0020 CDB7      		in r28,__SP_L__
+  96 0022 DEB7      		in r29,__SP_H__
+  97               	.LCFI16:
+  98               		.cfi_def_cfa_register 28
+  99 0024 A997      		sbiw r28,41
+ 100               	.LCFI17:
+ 101               		.cfi_def_cfa_offset 59
+ 102 0026 0FB6      		in __tmp_reg__,__SREG__
+ 103 0028 F894      		cli
+ 104 002a DEBF      		out __SP_H__,r29
+ 105 002c 0FBE      		out __SREG__,__tmp_reg__
+ 106 002e CDBF      		out __SP_L__,r28
+ 107               	/* prologue: function */
+ 108               	/* frame size = 41 */
+ 109               	/* stack size = 57 */
+ 110               	.L__stack_usage = 57
+ 111               	.LVL0:
+  50:menu.c        ****     char cTempChar = 1;     // Set to any value other than 0
+  51:menu.c        ****     char zOutputStr[MAX_MEM_SIZE + 3];  // Add space for newline, return and NULL
+  52:menu.c        ****     char *ptrOutputStr;
+  53:menu.c        **** 	char LCDDRx, LCDDRx5, LCDDRx10, LCDDRx15;
+  54:menu.c        ****     eErrorType error;
+  55:menu.c        **** 
+  56:menu.c        ****     // Read input characters until input buffer is empty
+  57:menu.c        ****     while ((cTempChar = SCIReadChar()) != 0)
+  58:menu.c        ****     {   // Have another character from input buffer
+  59:menu.c        ****         if (cTempChar == '\r')
+  60:menu.c        ****         {   // Enter character. Process input
+  61:menu.c        ****             *ptrInputStr = '\0';        // append Null 
+  62:menu.c        ****             ptrInputStr = zInputStr;    // Reset input string
+ 112               		.loc 1 62 0
+ 113 0030 80E0      		ldi r24,lo8(zInputStr)
+ 114 0032 A82E      		mov r10,r24
+ 115 0034 80E0      		ldi r24,hi8(zInputStr)
+ 116 0036 B82E      		mov r11,r24
+  63:menu.c        ****             SCIWriteString_P(PSTR("\n\r"));     // Move cursor to next line
+  64:menu.c        **** 
+  65:menu.c        ****             // Process entry based on debug menu state
+  66:menu.c        ****             switch(MenuState)
+  67:menu.c        ****             {
+  68:menu.c        ****                 case TOP_MENU:
+  69:menu.c        ****                     if (strcmp(zInputStr, "?") == 0)
+  70:menu.c        ****                     {   // Help screen
+  71:menu.c        **** 						MenuState = DISPLAY_HELP_MENU1;
+  72:menu.c        ****                     }
+  73:menu.c        **** 
+  74:menu.c        ****                     else if (strcmp(zInputStr, "ge") == 0)
+  75:menu.c        ****                     {   // Display desired signal parameters
+  76:menu.c        ****                         // Retrieve signal parameters
+  77:menu.c        ****                         error = GetError();
+  78:menu.c        ****                         SCIWriteString_P(PSTR("  Error = "));
+  79:menu.c        ****                         ptrOutputStr = zOutputStr;
+  80:menu.c        ****                         _itoa(&ptrOutputStr, error, 10);
+  81:menu.c        ****                         SCIWriteString(zOutputStr);
+  82:menu.c        ****                         SCIWriteString_P(PSTR("\n\r"));
+  83:menu.c        ****                     }
+  84:menu.c        **** 
+  85:menu.c        ****                     else if (strcmp(zInputStr, "ce") == 0)
+  86:menu.c        ****                     {
+  87:menu.c        ****                         ClearError();
+  88:menu.c        ****                     }                   
+  89:menu.c        **** 
+  90:menu.c        ****                     else if (strcmp(zInputStr, "wc") == 0)
+  91:menu.c        ****                     {
+  92:menu.c        ****                         SCIWriteString_P(PSTR("  Enter char to store: "));
+  93:menu.c        ****                         MenuState = GET_CHAR_FOR_EEPROM;
+  94:menu.c        ****                     }
+  95:menu.c        **** 					
+  96:menu.c        **** 					else if (strcmp(zInputStr, "rc") == 0)
+  97:menu.c        **** 					{	/*
+  98:menu.c        **** 						 * Get address.  If the LCD segment table is not stored
+  99:menu.c        **** 						 * in the low address of the EEPROM, the prompt should
+ 100:menu.c        **** 						 * be changed to reflect this.
+ 101:menu.c        **** 						 */
+ 102:menu.c        **** 						SCIWriteString_P(PSTR("  Enter EEPROM address, 110 - 4095: "));
+ 103:menu.c        **** 						MenuState = GET_EEPROM_READ_ADDR;
+ 104:menu.c        **** 					}
+ 105:menu.c        **** 
+ 106:menu.c        ****                     else
+ 107:menu.c        ****                     {   // No entry
+ 108:menu.c        ****                         // Back to top menu
+ 109:menu.c        ****                         MenuState = TOP_MENU;
+ 110:menu.c        ****                     }
+ 111:menu.c        ****                     break;
+ 112:menu.c        **** 
+ 113:menu.c        ****                 case GET_CHAR_FOR_EEPROM:
+ 114:menu.c        ****                     if (zInputStr[0] != '\0')
+ 115:menu.c        ****                     {   // Just skip NULL entries
+ 116:menu.c        **** 						LCDChar = zInputStr[0];
+ 117:menu.c        **** 						/*
+ 118:menu.c        **** 						 * Get address.  If the LCD segment table is not stored
+ 119:menu.c        **** 						 * in the low address of the EEPROM, the prompt should
+ 120:menu.c        **** 						 * be changed to reflect this.
+ 121:menu.c        **** 						 */
+ 122:menu.c        **** 						SCIWriteString_P(PSTR("  Enter EEPROM address, 110 - 4095: "));
+ 123:menu.c        **** 						MenuState = GET_EEPROM_WRITE_ADDR;
+ 117               		.loc 1 123 0
+ 118 0038 96E0      		ldi r25,lo8(6)
+ 119 003a C92E      		mov r12,r25
+ 124:menu.c        **** 					}
+ 125:menu.c        **** 					else MenuState = TOP_MENU;
+ 126:menu.c        ****                     break;
+ 127:menu.c        **** 
+ 128:menu.c        **** 				case GET_EEPROM_READ_ADDR:
+ 129:menu.c        **** 					/*
+ 130:menu.c        **** 					 * Stay here until the entire message has been
+ 131:menu.c        **** 					 * received from the serial port.
+ 132:menu.c        **** 					 */
+ 133:menu.c        **** 					if (zInputStr[0] != '\0')
+ 134:menu.c        **** 					{	// Just skip NULL entries
+ 135:menu.c        **** 						EEPROMAddr = _atoi(zInputStr, 10);
+ 136:menu.c        **** 						LCDChar = EEPROM_read(EEPROMAddr);
+ 137:menu.c        **** 						if (EEPROMAddr >= GetLCDTableSize())
+ 138:menu.c        **** 						{
+ 139:menu.c        **** 							error = GetLCDDRValues(LCDChar, &LCDDRx, &LCDDRx5, &LCDDRx10, &LCDDRx15);
+ 140:menu.c        **** 							if (error == NO_ERROR)
+ 141:menu.c        **** 							{
+ 142:menu.c        **** 								strcpy_P(zOutputStr, PSTR("Char = "));
+ 120               		.loc 1 142 0
+ 121 003c CE01      		movw r24,r28
+ 122 003e 0196      		adiw r24,1
+ 123 0040 7C01      		movw r14,r24
+ 143:menu.c        **** 								zOutputStr[7] = LCDChar;
+ 144:menu.c        **** 								zOutputStr[8] = '\n';
+ 124               		.loc 1 144 0
+ 125 0042 2AE0      		ldi r18,lo8(10)
+ 126 0044 722E      		mov r7,r18
+ 145:menu.c        **** 								zOutputStr[9] = '\r';
+ 146:menu.c        **** 								zOutputStr[10] = '\0';
+ 147:menu.c        **** 								SCIWriteString(zOutputStr);
+ 148:menu.c        **** 								sprintf(zOutputStr, "Segment Data = %X%X%X%X\n\r", 
+ 127               		.loc 1 148 0
+ 128 0046 30E0      		ldi r19,lo8(.LC5)
+ 129 0048 832E      		mov r8,r19
+ 130 004a 30E0      		ldi r19,hi8(.LC5)
+ 131 004c 932E      		mov r9,r19
+ 103:menu.c        **** 					}
+ 132               		.loc 1 103 0
+ 133 004e 45E0      		ldi r20,lo8(5)
+ 134 0050 642E      		mov r6,r20
+  93:menu.c        ****                     }
+ 135               		.loc 1 93 0
+ 136 0052 54E0      		ldi r21,lo8(4)
+ 137 0054 552E      		mov r5,r21
+  71:menu.c        ****                     }
+ 138               		.loc 1 71 0
+ 139 0056 4424      		clr r4
+ 140 0058 4394      		inc r4
+ 141               	.LVL1:
+ 142               	.L2:
+  57:menu.c        ****     {   // Have another character from input buffer
+ 143               		.loc 1 57 0
+ 144 005a 0E94 0000 		call SCIReadChar
+ 145               	.LVL2:
+ 146 005e D82E      		mov r13,r24
+ 147               	.LVL3:
+ 148 0060 8823      		tst r24
+ 149 0062 01F4      		brne .+2
+ 150 0064 00C0      		rjmp .L37
+ 151 0066 E091 0000 		lds r30,ptrInputStr
+ 152 006a F091 0000 		lds r31,ptrInputStr+1
+  59:menu.c        ****         {   // Enter character. Process input
+ 153               		.loc 1 59 0
+ 154 006e 9DE0      		ldi r25,lo8(13)
+ 155 0070 D912      		cpse r13,r25
+ 156 0072 00C0      		rjmp .L3
+  61:menu.c        ****             ptrInputStr = zInputStr;    // Reset input string
+ 157               		.loc 1 61 0
+ 158 0074 1082      		st Z,__zero_reg__
+  62:menu.c        ****             SCIWriteString_P(PSTR("\n\r"));     // Move cursor to next line
+ 159               		.loc 1 62 0
+ 160 0076 B092 0000 		sts ptrInputStr+1,r11
+ 161 007a A092 0000 		sts ptrInputStr,r10
+  63:menu.c        **** 
+ 162               		.loc 1 63 0
+ 163 007e 80E0      		ldi r24,lo8(__c.2186)
+ 164 0080 90E0      		ldi r25,hi8(__c.2186)
+ 165 0082 0E94 0000 		call SCIWriteString_P
+ 166               	.LVL4:
+  66:menu.c        ****             {
+ 167               		.loc 1 66 0
+ 168 0086 8091 0000 		lds r24,MenuState
+ 169 008a 8430      		cpi r24,lo8(4)
+ 170 008c 01F4      		brne .+2
+ 171 008e 00C0      		rjmp .L5
+ 172 0090 00F4      		brsh .L6
+ 173 0092 8823      		tst r24
+ 174 0094 01F0      		breq .L7
+ 175 0096 00C0      		rjmp .L4
+ 176               	.L6:
+ 177 0098 8530      		cpi r24,lo8(5)
+ 178 009a 01F4      		brne .+2
+ 179 009c 00C0      		rjmp .L8
+ 180 009e 8630      		cpi r24,lo8(6)
+ 181 00a0 01F4      		brne .+2
+ 182 00a2 00C0      		rjmp .L9
+ 183 00a4 00C0      		rjmp .L4
+ 184               	.L7:
+  69:menu.c        ****                     {   // Help screen
+ 185               		.loc 1 69 0
+ 186 00a6 60E0      		ldi r22,lo8(.LC0)
+ 187 00a8 70E0      		ldi r23,hi8(.LC0)
+ 188 00aa 80E0      		ldi r24,lo8(zInputStr)
+ 189 00ac 90E0      		ldi r25,hi8(zInputStr)
+ 190 00ae 0E94 0000 		call strcmp
+ 191               	.LVL5:
+ 192 00b2 892B      		or r24,r25
+ 193 00b4 01F4      		brne .L10
+  71:menu.c        ****                     }
+ 194               		.loc 1 71 0
+ 195 00b6 4092 0000 		sts MenuState,r4
+ 196 00ba 00C0      		rjmp .L11
+ 197               	.L10:
+  74:menu.c        ****                     {   // Display desired signal parameters
+ 198               		.loc 1 74 0
+ 199 00bc 60E0      		ldi r22,lo8(.LC1)
+ 200 00be 70E0      		ldi r23,hi8(.LC1)
+ 201 00c0 80E0      		ldi r24,lo8(zInputStr)
+ 202 00c2 90E0      		ldi r25,hi8(zInputStr)
+ 203 00c4 0E94 0000 		call strcmp
+ 204               	.LVL6:
+ 205 00c8 892B      		or r24,r25
+ 206 00ca 01F4      		brne .L12
+  77:menu.c        ****                         SCIWriteString_P(PSTR("  Error = "));
+ 207               		.loc 1 77 0
+ 208 00cc 0E94 0000 		call GetError
+ 209               	.LVL7:
+ 210 00d0 D82E      		mov r13,r24
+ 211               	.LVL8:
+  78:menu.c        ****                         ptrOutputStr = zOutputStr;
+ 212               		.loc 1 78 0
+ 213 00d2 80E0      		ldi r24,lo8(__c.2189)
+ 214 00d4 90E0      		ldi r25,hi8(__c.2189)
+ 215 00d6 0E94 0000 		call SCIWriteString_P
+ 216               	.LVL9:
+  79:menu.c        ****                         _itoa(&ptrOutputStr, error, 10);
+ 217               		.loc 1 79 0
+ 218 00da FDA2      		std Y+37,r15
+ 219 00dc ECA2      		std Y+36,r14
+  80:menu.c        ****                         SCIWriteString(zOutputStr);
+ 220               		.loc 1 80 0
+ 221 00de 6D2D      		mov r22,r13
+ 222 00e0 70E0      		ldi r23,0
+ 223 00e2 4AE0      		ldi r20,lo8(10)
+ 224 00e4 50E0      		ldi r21,0
+ 225 00e6 CE01      		movw r24,r28
+ 226 00e8 8496      		adiw r24,36
+ 227 00ea 0E94 0000 		call _itoa
+ 228               	.LVL10:
+  81:menu.c        ****                         SCIWriteString_P(PSTR("\n\r"));
+ 229               		.loc 1 81 0
+ 230 00ee C701      		movw r24,r14
+ 231 00f0 0E94 0000 		call SCIWriteString
+ 232               	.LVL11:
+  82:menu.c        ****                     }
+ 233               		.loc 1 82 0
+ 234 00f4 80E0      		ldi r24,lo8(__c.2191)
+ 235 00f6 90E0      		ldi r25,hi8(__c.2191)
+ 236 00f8 0E94 0000 		call SCIWriteString_P
+ 237               	.LVL12:
+ 238 00fc 00C0      		rjmp .L11
+ 239               	.LVL13:
+ 240               	.L12:
+  85:menu.c        ****                     {
+ 241               		.loc 1 85 0
+ 242 00fe 60E0      		ldi r22,lo8(.LC2)
+ 243 0100 70E0      		ldi r23,hi8(.LC2)
+ 244 0102 80E0      		ldi r24,lo8(zInputStr)
+ 245 0104 90E0      		ldi r25,hi8(zInputStr)
+ 246 0106 0E94 0000 		call strcmp
+ 247               	.LVL14:
+ 248 010a 892B      		or r24,r25
+ 249 010c 01F4      		brne .L13
+  87:menu.c        ****                     }                   
+ 250               		.loc 1 87 0
+ 251 010e 0E94 0000 		call ClearError
+ 252               	.LVL15:
+ 253 0112 00C0      		rjmp .L11
+ 254               	.L13:
+  90:menu.c        ****                     {
+ 255               		.loc 1 90 0
+ 256 0114 60E0      		ldi r22,lo8(.LC3)
+ 257 0116 70E0      		ldi r23,hi8(.LC3)
+ 258 0118 80E0      		ldi r24,lo8(zInputStr)
+ 259 011a 90E0      		ldi r25,hi8(zInputStr)
+ 260 011c 0E94 0000 		call strcmp
+ 261               	.LVL16:
+ 262 0120 892B      		or r24,r25
+ 263 0122 01F4      		brne .L14
+  92:menu.c        ****                         MenuState = GET_CHAR_FOR_EEPROM;
+ 264               		.loc 1 92 0
+ 265 0124 80E0      		ldi r24,lo8(__c.2193)
+ 266 0126 90E0      		ldi r25,hi8(__c.2193)
+ 267 0128 0E94 0000 		call SCIWriteString_P
+ 268               	.LVL17:
+  93:menu.c        ****                     }
+ 269               		.loc 1 93 0
+ 270 012c 5092 0000 		sts MenuState,r5
+ 271 0130 00C0      		rjmp .L11
+ 272               	.L14:
+  96:menu.c        **** 					{	/*
+ 273               		.loc 1 96 0
+ 274 0132 60E0      		ldi r22,lo8(.LC4)
+ 275 0134 70E0      		ldi r23,hi8(.LC4)
+ 276 0136 80E0      		ldi r24,lo8(zInputStr)
+ 277 0138 90E0      		ldi r25,hi8(zInputStr)
+ 278 013a 0E94 0000 		call strcmp
+ 279               	.LVL18:
+ 280 013e 892B      		or r24,r25
+ 281 0140 01F0      		breq .+2
+ 282 0142 00C0      		rjmp .L4
+ 102:menu.c        **** 						MenuState = GET_EEPROM_READ_ADDR;
+ 283               		.loc 1 102 0
+ 284 0144 80E0      		ldi r24,lo8(__c.2195)
+ 285 0146 90E0      		ldi r25,hi8(__c.2195)
+ 286 0148 0E94 0000 		call SCIWriteString_P
+ 287               	.LVL19:
+ 103:menu.c        **** 					}
+ 288               		.loc 1 103 0
+ 289 014c 6092 0000 		sts MenuState,r6
+ 290 0150 00C0      		rjmp .L11
+ 291               	.L5:
+ 114:menu.c        ****                     {   // Just skip NULL entries
+ 292               		.loc 1 114 0
+ 293 0152 8091 0000 		lds r24,zInputStr
+ 294 0156 8823      		tst r24
+ 295 0158 01F4      		brne .+2
+ 296 015a 00C0      		rjmp .L4
+ 116:menu.c        **** 						/*
+ 297               		.loc 1 116 0
+ 298 015c 8093 0000 		sts LCDChar,r24
+ 122:menu.c        **** 						MenuState = GET_EEPROM_WRITE_ADDR;
+ 299               		.loc 1 122 0
+ 300 0160 80E0      		ldi r24,lo8(__c.2199)
+ 301 0162 90E0      		ldi r25,hi8(__c.2199)
+ 302 0164 0E94 0000 		call SCIWriteString_P
+ 303               	.LVL20:
+ 123:menu.c        **** 					}
+ 304               		.loc 1 123 0
+ 305 0168 C092 0000 		sts MenuState,r12
+ 306 016c 00C0      		rjmp .L11
+ 307               	.L8:
+ 133:menu.c        **** 					{	// Just skip NULL entries
+ 308               		.loc 1 133 0
+ 309 016e 8091 0000 		lds r24,zInputStr
+ 310 0172 8823      		tst r24
+ 311 0174 01F4      		brne .+2
+ 312 0176 00C0      		rjmp .L4
+ 135:menu.c        **** 						LCDChar = EEPROM_read(EEPROMAddr);
+ 313               		.loc 1 135 0
+ 314 0178 6AE0      		ldi r22,lo8(10)
+ 315 017a 70E0      		ldi r23,0
+ 316 017c 80E0      		ldi r24,lo8(zInputStr)
+ 317 017e 90E0      		ldi r25,hi8(zInputStr)
+ 318 0180 0E94 0000 		call _atoi
+ 319               	.LVL21:
+ 320 0184 9093 0000 		sts EEPROMAddr+1,r25
+ 321 0188 8093 0000 		sts EEPROMAddr,r24
+ 136:menu.c        **** 						if (EEPROMAddr >= GetLCDTableSize())
+ 322               		.loc 1 136 0
+ 323 018c 0E94 0000 		call EEPROM_read
+ 324               	.LVL22:
+ 325 0190 8093 0000 		sts LCDChar,r24
+ 137:menu.c        **** 						{
+ 326               		.loc 1 137 0
+ 327 0194 0091 0000 		lds r16,EEPROMAddr
+ 328 0198 1091 0000 		lds r17,EEPROMAddr+1
+ 329 019c 0E94 0000 		call GetLCDTableSize
+ 330               	.LVL23:
+ 331 01a0 0817      		cp r16,r24
+ 332 01a2 1907      		cpc r17,r25
+ 333 01a4 00F0      		brlo .L16
+ 139:menu.c        **** 							if (error == NO_ERROR)
+ 334               		.loc 1 139 0
+ 335 01a6 8E01      		movw r16,r28
+ 336 01a8 0A5D      		subi r16,-38
+ 337 01aa 1F4F      		sbci r17,-1
+ 338 01ac 9E01      		movw r18,r28
+ 339 01ae 295D      		subi r18,-39
+ 340 01b0 3F4F      		sbci r19,-1
+ 341 01b2 AE01      		movw r20,r28
+ 342 01b4 485D      		subi r20,-40
+ 343 01b6 5F4F      		sbci r21,-1
+ 344 01b8 BE01      		movw r22,r28
+ 345 01ba 675D      		subi r22,-41
+ 346 01bc 7F4F      		sbci r23,-1
+ 347 01be 8091 0000 		lds r24,LCDChar
+ 348 01c2 0E94 0000 		call GetLCDDRValues
+ 349               	.LVL24:
+ 140:menu.c        **** 							{
+ 350               		.loc 1 140 0
+ 351 01c6 8111      		cpse r24,__zero_reg__
+ 352 01c8 00C0      		rjmp .L17
+ 142:menu.c        **** 								zOutputStr[7] = LCDChar;
+ 353               		.loc 1 142 0
+ 354 01ca 60E0      		ldi r22,lo8(__c.2202)
+ 355 01cc 70E0      		ldi r23,hi8(__c.2202)
+ 356 01ce C701      		movw r24,r14
+ 357               	.LVL25:
+ 358 01d0 0E94 0000 		call strcpy_P
+ 359               	.LVL26:
+ 143:menu.c        **** 								zOutputStr[8] = '\n';
+ 360               		.loc 1 143 0
+ 361 01d4 8091 0000 		lds r24,LCDChar
+ 362 01d8 8887      		std Y+8,r24
+ 144:menu.c        **** 								zOutputStr[9] = '\r';
+ 363               		.loc 1 144 0
+ 364 01da 7986      		std Y+9,r7
+ 145:menu.c        **** 								zOutputStr[10] = '\0';
+ 365               		.loc 1 145 0
+ 366 01dc DA86      		std Y+10,r13
+ 146:menu.c        **** 								SCIWriteString(zOutputStr);
+ 367               		.loc 1 146 0
+ 368 01de 1B86      		std Y+11,__zero_reg__
+ 147:menu.c        **** 								sprintf(zOutputStr, "Segment Data = %X%X%X%X\n\r", 
+ 369               		.loc 1 147 0
+ 370 01e0 C701      		movw r24,r14
+ 371 01e2 0E94 0000 		call SCIWriteString
+ 372               	.LVL27:
+ 373               		.loc 1 148 0
+ 374 01e6 89A5      		ldd r24,Y+41
+ 375 01e8 1F92      		push __zero_reg__
+ 376 01ea 8F93      		push r24
+ 377 01ec 88A5      		ldd r24,Y+40
+ 378 01ee 1F92      		push __zero_reg__
+ 379 01f0 8F93      		push r24
+ 380 01f2 8FA1      		ldd r24,Y+39
+ 381 01f4 1F92      		push __zero_reg__
+ 382 01f6 8F93      		push r24
+ 383 01f8 8EA1      		ldd r24,Y+38
+ 384 01fa 1F92      		push __zero_reg__
+ 385 01fc 8F93      		push r24
+ 386 01fe 9F92      		push r9
+ 387 0200 8F92      		push r8
+ 388 0202 FF92      		push r15
+ 389 0204 EF92      		push r14
+ 390 0206 0E94 0000 		call sprintf
+ 391               	.LVL28:
+ 149:menu.c        **** 										LCDDRx15, LCDDRx10, LCDDRx5, LCDDRx);
+ 150:menu.c        **** 								SCIWriteString(zOutputStr);
+ 392               		.loc 1 150 0
+ 393 020a C701      		movw r24,r14
+ 394 020c 0E94 0000 		call SCIWriteString
+ 395               	.LVL29:
+ 396 0210 0FB6      		in __tmp_reg__,__SREG__
+ 397 0212 F894      		cli
+ 398 0214 DEBF      		out __SP_H__,r29
+ 399 0216 0FBE      		out __SREG__,__tmp_reg__
+ 400 0218 CDBF      		out __SP_L__,r28
+ 401 021a 00C0      		rjmp .L4
+ 402               	.LVL30:
+ 403               	.L17:
+ 151:menu.c        **** 							}
+ 152:menu.c        **** 							else
+ 153:menu.c        **** 							{
+ 154:menu.c        **** 								ReportError(LCD_INVALID_CHAR);
+ 404               		.loc 1 154 0
+ 405 021c 8CE0      		ldi r24,lo8(12)
+ 406               	.LVL31:
+ 407 021e 00C0      		rjmp .L34
+ 408               	.L16:
+ 155:menu.c        **** 							}
+ 156:menu.c        **** 						}
+ 157:menu.c        **** 						else
+ 158:menu.c        **** 						{
+ 159:menu.c        **** 							ReportError(PARAMETER_OUT_OF_RANGE);
+ 409               		.loc 1 159 0
+ 410 0220 80E1      		ldi r24,lo8(16)
+ 411               	.L34:
+ 412 0222 0E94 0000 		call ReportError
+ 413               	.LVL32:
+ 414 0226 00C0      		rjmp .L4
+ 415               	.L9:
+ 160:menu.c        **** 						}
+ 161:menu.c        **** 					}
+ 162:menu.c        **** 					MenuState = TOP_MENU;
+ 163:menu.c        **** 					break;
+ 164:menu.c        **** 
+ 165:menu.c        **** 				case GET_EEPROM_WRITE_ADDR:
+ 166:menu.c        **** 					if (zInputStr[0] != '\0')
+ 416               		.loc 1 166 0
+ 417 0228 8091 0000 		lds r24,zInputStr
+ 418 022c 8823      		tst r24
+ 419 022e 01F0      		breq .L4
+ 167:menu.c        **** 					{	// Just skip null entries
+ 168:menu.c        **** 						EEPROMAddr = _atoi(zInputStr, 10);
+ 420               		.loc 1 168 0
+ 421 0230 6AE0      		ldi r22,lo8(10)
+ 422 0232 70E0      		ldi r23,0
+ 423 0234 80E0      		ldi r24,lo8(zInputStr)
+ 424 0236 90E0      		ldi r25,hi8(zInputStr)
+ 425 0238 0E94 0000 		call _atoi
+ 426               	.LVL33:
+ 427 023c 8C01      		movw r16,r24
+ 428 023e 9093 0000 		sts EEPROMAddr+1,r25
+ 429 0242 8093 0000 		sts EEPROMAddr,r24
+ 169:menu.c        **** 						if (EEPROMAddr >= GetLCDTableSize())
+ 430               		.loc 1 169 0
+ 431 0246 0E94 0000 		call GetLCDTableSize
+ 432               	.LVL34:
+ 433 024a 0817      		cp r16,r24
+ 434 024c 1907      		cpc r17,r25
+ 435 024e 00F0      		brlo .L16
+ 170:menu.c        **** 						{
+ 171:menu.c        **** 							EEPROM_write(EEPROMAddr, LCDChar);
+ 436               		.loc 1 171 0
+ 437 0250 6091 0000 		lds r22,LCDChar
+ 438 0254 8091 0000 		lds r24,EEPROMAddr
+ 439 0258 9091 0000 		lds r25,EEPROMAddr+1
+ 440 025c 0E94 0000 		call EEPROM_write
+ 441               	.LVL35:
+ 172:menu.c        **** 							strcpy(zOutputStr,zInputStr);
+ 442               		.loc 1 172 0
+ 443 0260 60E0      		ldi r22,lo8(zInputStr)
+ 444 0262 70E0      		ldi r23,hi8(zInputStr)
+ 445 0264 C701      		movw r24,r14
+ 446 0266 0E94 0000 		call strcpy
+ 447               	.LVL36:
+ 448               	.L4:
+ 173:menu.c        **** 						}
+ 174:menu.c        **** 						else
+ 175:menu.c        **** 						{
+ 176:menu.c        **** 							ReportError(PARAMETER_OUT_OF_RANGE);
+ 177:menu.c        **** 						}
+ 178:menu.c        **** 					}
+ 179:menu.c        **** 					MenuState = TOP_MENU;
+ 180:menu.c        **** 					break;
+ 181:menu.c        ****                 
+ 182:menu.c        ****                 default:
+ 183:menu.c        ****                     // Erroneous state. Reset to none
+ 184:menu.c        ****                     MenuState = TOP_MENU;
+ 449               		.loc 1 184 0
+ 450 026a 1092 0000 		sts MenuState,__zero_reg__
+ 451               	.LVL37:
+ 452               	.L11:
+ 185:menu.c        ****                     break;
+ 186:menu.c        ****             }   // end switch
+ 187:menu.c        **** 
+ 188:menu.c        ****             // Reset string pointer. May have been moved during command processing
+ 189:menu.c        ****             ptrInputStr = zInputStr;
+ 453               		.loc 1 189 0
+ 454 026e B092 0000 		sts ptrInputStr+1,r11
+ 455 0272 A092 0000 		sts ptrInputStr,r10
+ 190:menu.c        **** 
+ 191:menu.c        ****             if (MenuState == TOP_MENU)
+ 456               		.loc 1 191 0
+ 457 0276 8091 0000 		lds r24,MenuState
+ 458 027a 8111      		cpse r24,__zero_reg__
+ 459 027c 00C0      		rjmp .L2
+ 192:menu.c        ****             {
+ 193:menu.c        ****                 // Display prompt
+ 194:menu.c        ****                 SCIWriteString_P(PSTR("cmd> "));
+ 460               		.loc 1 194 0
+ 461 027e 80E0      		ldi r24,lo8(__c.2206)
+ 462 0280 90E0      		ldi r25,hi8(__c.2206)
+ 463 0282 0E94 0000 		call SCIWriteString_P
+ 464               	.LVL38:
+ 465 0286 00C0      		rjmp .L2
+ 466               	.LVL39:
+ 467               	.L3:
+ 195:menu.c        ****             }
+ 196:menu.c        ****         }
+ 197:menu.c        ****         else
+ 198:menu.c        ****         {   // Save new character to input buffer
+ 199:menu.c        ****             if (ptrInputStr < &zInputStr[MAX_IN_STR_SIZE-2])
+ 468               		.loc 1 199 0
+ 469 0288 90E0      		ldi r25,hi8(zInputStr+20)
+ 470 028a E030      		cpi r30,lo8(zInputStr+20)
+ 471 028c F907      		cpc r31,r25
+ 472 028e 00F0      		brlo .+2
+ 473 0290 00C0      		rjmp .L2
+ 200:menu.c        ****             {   // Buffer is not full
+ 201:menu.c        ****                 *ptrInputStr = cTempChar;
+ 474               		.loc 1 201 0
+ 475 0292 D082      		st Z,r13
+ 202:menu.c        ****                 *(ptrInputStr+1) = '\0';    // Keep null in string
+ 476               		.loc 1 202 0
+ 477 0294 1182      		std Z+1,__zero_reg__
+ 203:menu.c        **** 
+ 204:menu.c        ****                 // echo character
+ 205:menu.c        ****                 SCIWriteString(ptrInputStr);
+ 478               		.loc 1 205 0
+ 479 0296 CF01      		movw r24,r30
+ 480 0298 0E94 0000 		call SCIWriteString
+ 481               	.LVL40:
+ 206:menu.c        **** 
+ 207:menu.c        ****                 ++ptrInputStr;
+ 482               		.loc 1 207 0
+ 483 029c 8091 0000 		lds r24,ptrInputStr
+ 484 02a0 9091 0000 		lds r25,ptrInputStr+1
+ 485 02a4 0196      		adiw r24,1
+ 486 02a6 9093 0000 		sts ptrInputStr+1,r25
+ 487 02aa 8093 0000 		sts ptrInputStr,r24
+ 488 02ae 00C0      		rjmp .L2
+ 489               	.L37:
+ 208:menu.c        ****             }   // else, buffer is full. Ignore characters.
+ 209:menu.c        ****         }
+ 210:menu.c        ****     }   // End while. All characters processed
+ 211:menu.c        **** 
+ 212:menu.c        **** 	if (MenuState == DISPLAY_HELP_MENU1)
+ 490               		.loc 1 212 0
+ 491 02b0 8091 0000 		lds r24,MenuState
+ 492 02b4 8130      		cpi r24,lo8(1)
+ 493 02b6 01F4      		brne .L22
+ 213:menu.c        **** 	{	// Display 1st part of help menu
+ 214:menu.c        **** 		SCIWriteString_P(PSTR("  Commands are:\n\r"));
+ 494               		.loc 1 214 0
+ 495 02b8 80E0      		ldi r24,lo8(__c.2211)
+ 496 02ba 90E0      		ldi r25,hi8(__c.2211)
+ 497 02bc 0E94 0000 		call SCIWriteString_P
+ 498               	.LVL41:
+ 215:menu.c        **** 		SCIWriteString_P(PSTR("  ge  - Display error code\n\r"));
+ 499               		.loc 1 215 0
+ 500 02c0 80E0      		ldi r24,lo8(__c.2213)
+ 501 02c2 90E0      		ldi r25,hi8(__c.2213)
+ 502 02c4 0E94 0000 		call SCIWriteString_P
+ 503               	.LVL42:
+ 216:menu.c        **** 		SCIWriteString_P(PSTR("  ce  - Clear current error\n\r"));
+ 504               		.loc 1 216 0
+ 505 02c8 80E0      		ldi r24,lo8(__c.2215)
+ 506 02ca 90E0      		ldi r25,hi8(__c.2215)
+ 507 02cc 0E94 0000 		call SCIWriteString_P
+ 508               	.LVL43:
+ 217:menu.c        **** 		MenuState = DISPLAY_HELP_MENU2;
+ 509               		.loc 1 217 0
+ 510 02d0 82E0      		ldi r24,lo8(2)
+ 511 02d2 00C0      		rjmp .L35
+ 512               	.L22:
+ 218:menu.c        **** 	}
+ 219:menu.c        **** 	
+ 220:menu.c        **** 	
+ 221:menu.c        **** 	
+ 222:menu.c        **** 	else if (MenuState == DISPLAY_HELP_MENU2)
+ 513               		.loc 1 222 0
+ 514 02d4 8230      		cpi r24,lo8(2)
+ 515 02d6 01F4      		brne .L24
+ 223:menu.c        **** 	{	// Display 3rd part of help menu
+ 224:menu.c        **** 		SCIWriteString_P(PSTR("  wc - Write character to EEPROM\n\r"));
+ 516               		.loc 1 224 0
+ 517 02d8 80E0      		ldi r24,lo8(__c.2217)
+ 518 02da 90E0      		ldi r25,hi8(__c.2217)
+ 519 02dc 0E94 0000 		call SCIWriteString_P
+ 520               	.LVL44:
+ 225:menu.c        **** 		SCIWriteString_P(PSTR("  rc - Read character from EEPROM\n\r"));
+ 521               		.loc 1 225 0
+ 522 02e0 80E0      		ldi r24,lo8(__c.2219)
+ 523 02e2 90E0      		ldi r25,hi8(__c.2219)
+ 524 02e4 0E94 0000 		call SCIWriteString_P
+ 525               	.LVL45:
+ 226:menu.c        **** 		MenuState = DISPLAY_HELP_MENU3;
+ 526               		.loc 1 226 0
+ 527 02e8 83E0      		ldi r24,lo8(3)
+ 528               	.L35:
+ 529 02ea 8093 0000 		sts MenuState,r24
+ 530 02ee 00C0      		rjmp .L1
+ 531               	.L24:
+ 227:menu.c        **** 	}
+ 228:menu.c        **** 	else if (MenuState == DISPLAY_HELP_MENU3)
+ 532               		.loc 1 228 0
+ 533 02f0 8330      		cpi r24,lo8(3)
+ 534 02f2 01F4      		brne .L1
+ 229:menu.c        **** 	{	// Display 4th part of help menu
+ 230:menu.c        **** 		SCIWriteString_P(PSTR("  ?   - Display this help menu\n\r"));
+ 535               		.loc 1 230 0
+ 536 02f4 80E0      		ldi r24,lo8(__c.2221)
+ 537 02f6 90E0      		ldi r25,hi8(__c.2221)
+ 538 02f8 0E94 0000 		call SCIWriteString_P
+ 539               	.LVL46:
+ 231:menu.c        **** 		MenuState = TOP_MENU;
+ 540               		.loc 1 231 0
+ 541 02fc 1092 0000 		sts MenuState,__zero_reg__
+ 542               	.L1:
+ 543               	/* epilogue start */
+ 232:menu.c        **** 	}
+ 233:menu.c        **** }
+ 544               		.loc 1 233 0
+ 545 0300 A996      		adiw r28,41
+ 546 0302 0FB6      		in __tmp_reg__,__SREG__
+ 547 0304 F894      		cli
+ 548 0306 DEBF      		out __SP_H__,r29
+ 549 0308 0FBE      		out __SREG__,__tmp_reg__
+ 550 030a CDBF      		out __SP_L__,r28
+ 551 030c DF91      		pop r29
+ 552 030e CF91      		pop r28
+ 553 0310 1F91      		pop r17
+ 554 0312 0F91      		pop r16
+ 555 0314 FF90      		pop r15
+ 556 0316 EF90      		pop r14
+ 557 0318 DF90      		pop r13
+ 558               	.LVL47:
+ 559 031a CF90      		pop r12
+ 560 031c BF90      		pop r11
+ 561 031e AF90      		pop r10
+ 562 0320 9F90      		pop r9
+ 563 0322 8F90      		pop r8
+ 564 0324 7F90      		pop r7
+ 565 0326 6F90      		pop r6
+ 566 0328 5F90      		pop r5
+ 567 032a 4F90      		pop r4
+ 568 032c 0895      		ret
+ 569               		.cfi_endproc
+ 570               	.LFE6:
+ 572               		.section	.progmem.data,"a",@progbits
+ 575               	__c.2221:
+ 576 0000 2020 3F20 		.string	"  ?   - Display this help menu\n\r"
+ 576      2020 2D20 
+ 576      4469 7370 
+ 576      6C61 7920 
+ 576      7468 6973 
+ 579               	__c.2219:
+ 580 0021 2020 7263 		.string	"  rc - Read character from EEPROM\n\r"
+ 580      202D 2052 
+ 580      6561 6420 
+ 580      6368 6172 
+ 580      6163 7465 
+ 583               	__c.2217:
+ 584 0045 2020 7763 		.string	"  wc - Write character to EEPROM\n\r"
+ 584      202D 2057 
+ 584      7269 7465 
+ 584      2063 6861 
+ 584      7261 6374 
+ 587               	__c.2215:
+ 588 0068 2020 6365 		.string	"  ce  - Clear current error\n\r"
+ 588      2020 2D20 
+ 588      436C 6561 
+ 588      7220 6375 
+ 588      7272 656E 
+ 591               	__c.2213:
+ 592 0086 2020 6765 		.string	"  ge  - Display error code\n\r"
+ 592      2020 2D20 
+ 592      4469 7370 
+ 592      6C61 7920 
+ 592      6572 726F 
+ 595               	__c.2211:
+ 596 00a3 2020 436F 		.string	"  Commands are:\n\r"
+ 596      6D6D 616E 
+ 596      6473 2061 
+ 596      7265 3A0A 
+ 596      0D00 
+ 599               	__c.2206:
+ 600 00b5 636D 643E 		.string	"cmd> "
+ 600      2000 
+ 603               	__c.2202:
+ 604 00bb 4368 6172 		.string	"Char = "
+ 604      203D 2000 
+ 607               	__c.2199:
+ 608 00c3 2020 456E 		.string	"  Enter EEPROM address, 110 - 4095: "
+ 608      7465 7220 
+ 608      4545 5052 
+ 608      4F4D 2061 
+ 608      6464 7265 
+ 611               	__c.2195:
+ 612 00e8 2020 456E 		.string	"  Enter EEPROM address, 110 - 4095: "
+ 612      7465 7220 
+ 612      4545 5052 
+ 612      4F4D 2061 
+ 612      6464 7265 
+ 615               	__c.2193:
+ 616 010d 2020 456E 		.string	"  Enter char to store: "
+ 616      7465 7220 
+ 616      6368 6172 
+ 616      2074 6F20 
+ 616      7374 6F72 
+ 619               	__c.2191:
+ 620 0125 0A0D 00   		.string	"\n\r"
+ 623               	__c.2189:
+ 624 0128 2020 4572 		.string	"  Error = "
+ 624      726F 7220 
+ 624      3D20 00
+ 627               	__c.2186:
+ 628 0133 0A0D 00   		.string	"\n\r"
+ 629               		.local	LCDChar
+ 630               		.comm	LCDChar,1,1
+ 631               		.local	EEPROMAddr
+ 632               		.comm	EEPROMAddr,2,1
+ 633               		.local	MenuState
+ 634               		.comm	MenuState,1,1
+ 635               		.data
+ 638               	ptrInputStr:
+ 639 0000 0000      		.word	zInputStr
+ 640               		.local	zInputStr
+ 641               		.comm	zInputStr,22,1
+ 642               		.text
+ 643               	.Letext0:
+ 644               		.file 2 "errors.h"
+ 645               		.file 3 "serial.h"
+ 646               		.file 4 "/usr/lib/avr/include/string.h"
+ 647               		.file 5 "lib.h"
+ 648               		.file 6 "my_eeprom.h"
+ 649               		.file 7 "lcd.h"
+ 650               		.file 8 "/usr/lib/avr/include/avr/pgmspace.h"
+ 651               		.file 9 "/usr/lib/avr/include/stdio.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 menu.c
+     /tmp/ccxr6QxM.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccxr6QxM.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccxr6QxM.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccxr6QxM.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccxr6QxM.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccxr6QxM.s:26     .text:0000000000000000 RunMenu
+     /tmp/ccxr6QxM.s:634    .bss:0000000000000004 zInputStr
+     /tmp/ccxr6QxM.s:638    .data:0000000000000000 ptrInputStr
+     /tmp/ccxr6QxM.s:627    .progmem.data:0000000000000133 __c.2186
+     /tmp/ccxr6QxM.s:632    .bss:0000000000000003 MenuState
+     /tmp/ccxr6QxM.s:623    .progmem.data:0000000000000128 __c.2189
+     /tmp/ccxr6QxM.s:619    .progmem.data:0000000000000125 __c.2191
+     /tmp/ccxr6QxM.s:615    .progmem.data:000000000000010d __c.2193
+     /tmp/ccxr6QxM.s:611    .progmem.data:00000000000000e8 __c.2195
+                             .bss:0000000000000000 LCDChar
+     /tmp/ccxr6QxM.s:607    .progmem.data:00000000000000c3 __c.2199
+     /tmp/ccxr6QxM.s:630    .bss:0000000000000001 EEPROMAddr
+     /tmp/ccxr6QxM.s:603    .progmem.data:00000000000000bb __c.2202
+     /tmp/ccxr6QxM.s:599    .progmem.data:00000000000000b5 __c.2206
+     /tmp/ccxr6QxM.s:595    .progmem.data:00000000000000a3 __c.2211
+     /tmp/ccxr6QxM.s:591    .progmem.data:0000000000000086 __c.2213
+     /tmp/ccxr6QxM.s:587    .progmem.data:0000000000000068 __c.2215
+     /tmp/ccxr6QxM.s:583    .progmem.data:0000000000000045 __c.2217
+     /tmp/ccxr6QxM.s:579    .progmem.data:0000000000000021 __c.2219
+     /tmp/ccxr6QxM.s:575    .progmem.data:0000000000000000 __c.2221
+
+UNDEFINED SYMBOLS
+SCIReadChar
+SCIWriteString_P
+strcmp
+GetError
+_itoa
+SCIWriteString
+ClearError
+_atoi
+EEPROM_read
+GetLCDTableSize
+GetLCDDRValues
+strcpy_P
+sprintf
+ReportError
+EEPROM_write
+strcpy
+__do_copy_data
+__do_clear_bss

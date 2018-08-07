@@ -1,0 +1,146 @@
+   1               		.file	"main.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               	.global	heartbeat
+  12               	heartbeat:
+  13               	.LFB1:
+  14               		.file 1 "main.c"
+   1:main.c        **** /******************************************************************************
+   2:main.c        ****  * File Name:	Main.c
+   3:main.c        **** */
+   4:main.c        **** 
+   5:main.c        **** 
+   6:main.c        **** 
+   7:main.c        **** #include "lib.h"
+   8:main.c        **** #include "menu.h"
+   9:main.c        **** #include "lcd.h"
+  10:main.c        **** #include "interrpt.h"
+  11:main.c        **** #include "heartbeat.h"
+  12:main.c        **** #include "serial.h"
+  13:main.c        **** #include "errors.h"
+  14:main.c        **** #include "my_eeprom.h"
+  15:main.c        **** 
+  16:main.c        **** 
+  17:main.c        **** /************************* Function Prototypes ******************************/
+  18:main.c        **** int main(void);
+  19:main.c        **** 
+  20:main.c        **** /*********************** Function Implementations ******************************/
+  21:main.c        **** 
+  22:main.c        **** /*
+  23:main.c        ****  * Since all we really want to do is toggle an LED on and off, there's no
+  24:main.c        ****  * point in keeping track of its state.  Just initialize the heartbeat LED,
+  25:main.c        ****  * then write 1 to PINB which toggles the bit.
+  26:main.c        ****  */
+  27:main.c        **** void heartbeat(void)
+  28:main.c        **** {
+  15               		.loc 1 28 0
+  16               		.cfi_startproc
+  17               	/* prologue: function */
+  18               	/* frame size = 0 */
+  19               	/* stack size = 0 */
+  20               	.L__stack_usage = 0
+  29:main.c        **** 	asm volatile (" sbi	0x09, 0 ");	// see warning in lib.h about SET_BIT
+  21               		.loc 1 29 0
+  22               	/* #APP */
+  23               	 ;  29 "main.c" 1
+  24 0000 489A      		 sbi	0x09, 0 
+  25               	 ;  0 "" 2
+  26               	/* #NOAPP */
+  27 0002 0895      		ret
+  28               		.cfi_endproc
+  29               	.LFE1:
+  31               		.section	.text.startup,"ax",@progbits
+  32               	.global	main
+  34               	main:
+  35               	.LFB2:
+  30:main.c        **** }
+  31:main.c        **** 
+  32:main.c        **** /*****************************************************************************
+  33:main.c        ****  * Main function.
+  34:main.c        ****  *
+  35:main.c        ****  * Initializes hardware and software. Then enters the endless foreground loop.
+  36:main.c        ****  *
+  37:main.c        ****  *****************************************************************************/
+  38:main.c        **** int main(void)
+  39:main.c        **** {
+  36               		.loc 1 39 0
+  37               		.cfi_startproc
+  38               	/* prologue: function */
+  39               	/* frame size = 0 */
+  40               	/* stack size = 0 */
+  41               	.L__stack_usage = 0
+  40:main.c        **** 	// Disable interrupts
+  41:main.c        **** 	cli();
+  42               		.loc 1 41 0
+  43               	/* #APP */
+  44               	 ;  41 "main.c" 1
+  45 0000 F894      		cli
+  46               	 ;  0 "" 2
+  42:main.c        **** 
+  43:main.c        **** 	// Set port D as an output and turn off all LEDs
+  44:main.c        **** 	DDRD = 0xFF;
+  47               		.loc 1 44 0
+  48               	/* #NOAPP */
+  49 0002 8FEF      		ldi r24,lo8(-1)
+  50 0004 8AB9      		out 0xa,r24
+  45:main.c        **** 	PORTD = 0xFF;
+  51               		.loc 1 45 0
+  52 0006 8BB9      		out 0xb,r24
+  46:main.c        **** 
+  47:main.c        **** 	/* Initialize the Timer 0 */
+  48:main.c        **** 	ISR_InitTimer0();
+  53               		.loc 1 48 0
+  54 0008 0E94 0000 		call ISR_InitTimer0
+  55               	.LVL0:
+  49:main.c        **** 
+  50:main.c        **** 	// Initialize serial I/O
+  51:main.c        **** 	SCIInitialize();
+  56               		.loc 1 51 0
+  57 000c 0E94 0000 		call SCIInitialize
+  58               	.LVL1:
+  52:main.c        **** 
+  53:main.c        **** 	/*
+  54:main.c        **** 	 * Enable interrupts. Do as last initialization, so interrupts are
+  55:main.c        **** 	 * not initiated until all of initialization is complete.
+  56:main.c        **** 	 */
+  57:main.c        **** 	sei();
+  59               		.loc 1 57 0
+  60               	/* #APP */
+  61               	 ;  57 "main.c" 1
+  62 0010 7894      		sei
+  63               	 ;  0 "" 2
+  64               	/* #NOAPP */
+  65               	.L3:
+  58:main.c        **** 
+  59:main.c        **** 	for ( ; ;)		/* Foreground loops forever */
+  60:main.c        **** 	{
+  61:main.c        **** 		// Do slow tasks here
+  62:main.c        **** 	}   /* end of endless loop */
+  66               		.loc 1 62 0 discriminator 1
+  67 0012 00C0      		rjmp .L3
+  68               		.cfi_endproc
+  69               	.LFE2:
+  71               		.text
+  72               	.Letext0:
+  73               		.file 2 "interrpt.h"
+  74               		.file 3 "serial.h"
+  75               		.file 4 "/usr/lib/avr/include/stdint.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 main.c
+     /tmp/ccFPa9nq.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccFPa9nq.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccFPa9nq.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccFPa9nq.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccFPa9nq.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccFPa9nq.s:12     .text:0000000000000000 heartbeat
+     /tmp/ccFPa9nq.s:34     .text.startup:0000000000000000 main
+
+UNDEFINED SYMBOLS
+ISR_InitTimer0
+SCIInitialize

@@ -1,0 +1,102 @@
+   1               		.file	"my_eeprom.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               	.global	EEPROM_write
+  12               	EEPROM_write:
+  13               	.LFB0:
+  14               		.file 1 "my_eeprom.c"
+   1:my_eeprom.c   **** /******************************************************************************
+   2:my_eeprom.c   ****  * File Name:	my_eeprom.c
+   3:my_eeprom.c   ****  * Program:		EEPROMAccess for Fundamentals of Embedded Systems class
+   4:my_eeprom.c   ****  * Author:		Tom Lill
+   5:my_eeprom.c   ****  * Purpose:		Contains control functions for accessing data in eeprom
+   6:my_eeprom.c   ****  *
+   7:my_eeprom.c   ****  *  Date		Changed by:	Changes:
+   8:my_eeprom.c   ****  * ---------	-----------	-------------------------------------------------------
+   9:my_eeprom.c   ****  * 21 Nov 05	T Lill		original file
+  10:my_eeprom.c   ****  * 22 May 06	T Lill		added interrupt.h header
+  11:my_eeprom.c   ****  * 14 Nov 06	T Lill		added eeprom message write and read functions
+  12:my_eeprom.c   ****  * 15 Mar 07	T Lill		removed message scrolling functions used in bonus project
+  13:my_eeprom.c   ****  * 09 Nov 10 	T Lill		Modified for ATmega2560
+  14:my_eeprom.c   ****  ******************************************************************************/
+  15:my_eeprom.c   **** 
+  16:my_eeprom.c   **** /********************************* Includes ***********************************/
+  17:my_eeprom.c   **** #include <avr/io.h>
+  18:my_eeprom.c   **** #include <avr/interrupt.h>
+  19:my_eeprom.c   **** #include <string.h>
+  20:my_eeprom.c   **** #include "my_eeprom.h"	// WinAVR has an eeprom.h so we need to avoid confusion
+  21:my_eeprom.c   **** 
+  22:my_eeprom.c   **** /*
+  23:my_eeprom.c   ****  * EEPROM_write
+  24:my_eeprom.c   ****  *
+  25:my_eeprom.c   ****  * Purpose:	Write a single byte to a specified location in EEPROM
+  26:my_eeprom.c   ****  *
+  27:my_eeprom.c   ****  * Inputs:	address		= The address, relative to the start of the eeprom, 
+  28:my_eeprom.c   ****  *						  where the data will be written.
+  29:my_eeprom.c   ****  *			data		= the data to be written
+  30:my_eeprom.c   ****  * 
+  31:my_eeprom.c   ****  * Returns:	nothing
+  32:my_eeprom.c   ****  */
+  33:my_eeprom.c   **** void EEPROM_write(unsigned int address, unsigned char data)
+  34:my_eeprom.c   **** {
+  15               		.loc 1 34 0
+  16               		.cfi_startproc
+  17               	.LVL0:
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+  22 0000 0895      		ret
+  23               		.cfi_endproc
+  24               	.LFE0:
+  26               	.global	EEPROM_read
+  28               	EEPROM_read:
+  29               	.LFB1:
+  35:my_eeprom.c   **** 	// ASSIGNMENT:  fill in this function
+  36:my_eeprom.c   **** 	
+  37:my_eeprom.c   **** }
+  38:my_eeprom.c   **** /*
+  39:my_eeprom.c   ****  * EEPROM_read
+  40:my_eeprom.c   ****  *
+  41:my_eeprom.c   ****  * Purpose: Read a single byte from a specified location in EEPROM
+  42:my_eeprom.c   ****  *
+  43:my_eeprom.c   ****  * Input:	address		= The address, relative to the start of the eeprom, 
+  44:my_eeprom.c   ****  *						  from which the data will be read.
+  45:my_eeprom.c   ****  * 
+  46:my_eeprom.c   ****  * Returns:	a byte of data
+  47:my_eeprom.c   ****  */
+  48:my_eeprom.c   **** unsigned char EEPROM_read(unsigned int address)
+  49:my_eeprom.c   **** {
+  30               		.loc 1 49 0
+  31               		.cfi_startproc
+  32               	.LVL1:
+  33               	/* prologue: function */
+  34               	/* frame size = 0 */
+  35               	/* stack size = 0 */
+  36               	.L__stack_usage = 0
+  37               	.LVL2:
+  50:my_eeprom.c   **** 	// ASSIGNMENT:  fill in this function
+  51:my_eeprom.c   **** 	
+  52:my_eeprom.c   **** }
+  38               		.loc 1 52 0
+  39 0002 0895      		ret
+  40               		.cfi_endproc
+  41               	.LFE1:
+  43               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 my_eeprom.c
+     /tmp/ccIOvDUf.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccIOvDUf.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccIOvDUf.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccIOvDUf.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccIOvDUf.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccIOvDUf.s:12     .text:0000000000000000 EEPROM_write
+     /tmp/ccIOvDUf.s:28     .text:0000000000000002 EEPROM_read
+
+NO UNDEFINED SYMBOLS

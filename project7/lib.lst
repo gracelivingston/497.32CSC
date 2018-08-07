@@ -1,0 +1,601 @@
+   1               		.file	"lib.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.rodata.str1.1,"aMS",@progbits,1
+  11               	.LC0:
+  12 0000 6162 6364 		.string	"abcdef"
+  12      6566 00
+  13               		.text
+  14               	.global	_itoa
+  16               	_itoa:
+  17               	.LFB0:
+  18               		.file 1 "lib.c"
+   1:lib.c         **** /******************************************************************************
+   2:lib.c         ****  * File Name:	Lib.c
+   3:lib.c         ****  * Program:		Project for Fundamentals of Embedded Systems class
+   4:lib.c         ****  * Author:		Robert Weber
+   5:lib.c         ****  * Purpose:		Contains library-like functions.
+   6:lib.c         ****  *
+   7:lib.c         ****  *  Date	  By:		Changes:
+   8:lib.c         ****  * ---------  ---------	-------------------------------------------------------
+   9:lib.c         ****  * 18 Feb 04  T Lill	modified for Winter 04 session
+  10:lib.c         ****  * 22 Apr 05  T Lill	corrected error in limit-check of hex characters
+  11:lib.c         ****  * 28 Nov 06  T Lill	Updated _itoa and _atoi to allow negative numbers.
+  12:lib.c         ****  ******************************************************************************/
+  13:lib.c         **** #include "string.h"
+  14:lib.c         **** #include "lib.h"
+  15:lib.c         **** 
+  16:lib.c         **** /******************************************************************************
+  17:lib.c         ****  * Converts the passed integer to its equivalent ASCII string, using the
+  18:lib.c         ****  * specified base. The allowable base is only 10 or 16.
+  19:lib.c         ****  ******************************************************************************/
+  20:lib.c         **** void _itoa(char **buf, int i, int base)
+  21:lib.c         **** {
+  19               		.loc 1 21 0
+  20               		.cfi_startproc
+  21               	.LVL0:
+  22 0000 EF92      		push r14
+  23               	.LCFI0:
+  24               		.cfi_def_cfa_offset 3
+  25               		.cfi_offset 14, -2
+  26 0002 FF92      		push r15
+  27               	.LCFI1:
+  28               		.cfi_def_cfa_offset 4
+  29               		.cfi_offset 15, -3
+  30 0004 0F93      		push r16
+  31               	.LCFI2:
+  32               		.cfi_def_cfa_offset 5
+  33               		.cfi_offset 16, -4
+  34 0006 1F93      		push r17
+  35               	.LCFI3:
+  36               		.cfi_def_cfa_offset 6
+  37               		.cfi_offset 17, -5
+  38 0008 CF93      		push r28
+  39               	.LCFI4:
+  40               		.cfi_def_cfa_offset 7
+  41               		.cfi_offset 28, -6
+  42 000a DF93      		push r29
+  43               	.LCFI5:
+  44               		.cfi_def_cfa_offset 8
+  45               		.cfi_offset 29, -7
+  46 000c CDB7      		in r28,__SP_L__
+  47 000e DEB7      		in r29,__SP_H__
+  48               	.LCFI6:
+  49               		.cfi_def_cfa_register 28
+  50 0010 6597      		sbiw r28,21
+  51               	.LCFI7:
+  52               		.cfi_def_cfa_offset 29
+  53 0012 0FB6      		in __tmp_reg__,__SREG__
+  54 0014 F894      		cli
+  55 0016 DEBF      		out __SP_H__,r29
+  56 0018 0FBE      		out __SREG__,__tmp_reg__
+  57 001a CDBF      		out __SP_L__,r28
+  58               	/* prologue: function */
+  59               	/* frame size = 21 */
+  60               	/* stack size = 27 */
+  61               	.L__stack_usage = 27
+  62 001c 8C01      		movw r16,r24
+  63 001e FB01      		movw r30,r22
+  64 0020 7A01      		movw r14,r20
+  22:lib.c         ****     char *s;
+  23:lib.c         ****     int rem;
+  24:lib.c         ****     char rev[STRLEN+1];
+  25:lib.c         **** 
+  26:lib.c         ****     if (i == 0)
+  65               		.loc 1 26 0
+  66 0022 3097      		sbiw r30,0
+  67 0024 01F4      		brne .L2
+  27:lib.c         ****     { /* Converting a 0, so we just generate the return string */
+  28:lib.c         ****         (*buf)[0] = '0';
+  68               		.loc 1 28 0
+  69 0026 DC01      		movw r26,r24
+  70 0028 ED91      		ld r30,X+
+  71 002a FC91      		ld r31,X
+  72 002c 1197      		sbiw r26,1
+  73 002e 80E3      		ldi r24,lo8(48)
+  74               	.LVL1:
+  75 0030 8083      		st Z,r24
+  29:lib.c         ****         (*buf)[1] = '\0';   /* RJW: Null-terminate string */
+  76               		.loc 1 29 0
+  77 0032 ED91      		ld r30,X+
+  78 0034 FC91      		ld r31,X
+  79 0036 1182      		std Z+1,__zero_reg__
+  80 0038 00C0      		rjmp .L1
+  81               	.L2:
+  30:lib.c         ****         return;
+  31:lib.c         ****     }
+  32:lib.c         **** 	/*
+  33:lib.c         **** 	 * If the number to be converted is negative, we'll just treat it as
+  34:lib.c         **** 	 * positive, add a minus sign to the output string, then perform the
+  35:lib.c         **** 	 * conversion,
+  36:lib.c         **** 	 */
+  37:lib.c         **** 	if (i < 0)
+  82               		.loc 1 37 0
+  83 003a 77FF      		sbrs r23,7
+  84 003c 00C0      		rjmp .L4
+  38:lib.c         **** 	{
+  39:lib.c         **** 		i = -i;
+  85               		.loc 1 39 0
+  86 003e F195      		neg r31
+  87 0040 E195      		neg r30
+  88 0042 F109      		sbc r31,__zero_reg__
+  89               	.LVL2:
+  40:lib.c         **** 		(*buf)[0] = '-';
+  90               		.loc 1 40 0
+  91 0044 DC01      		movw r26,r24
+  92 0046 2D91      		ld r18,X+
+  93 0048 3C91      		ld r19,X
+  94 004a 8DE2      		ldi r24,lo8(45)
+  95 004c D901      		movw r26,r18
+  96 004e 8C93      		st X,r24
+  41:lib.c         **** 		++(*buf);
+  97               		.loc 1 41 0
+  98 0050 D801      		movw r26,r16
+  99 0052 8D91      		ld r24,X+
+ 100 0054 9C91      		ld r25,X
+ 101 0056 1197      		sbiw r26,1
+ 102 0058 0196      		adiw r24,1
+ 103 005a 8D93      		st X+,r24
+ 104 005c 9C93      		st X,r25
+ 105               	.L4:
+  42:lib.c         **** 	} 
+  43:lib.c         **** 
+  44:lib.c         ****     /* Set "rev" array to 0 */
+  45:lib.c         ****     memset((MEMPTR)rev,0,STRLEN+1);
+ 106               		.loc 1 45 0
+ 107 005e 9E01      		movw r18,r28
+ 108 0060 2F5F      		subi r18,-1
+ 109 0062 3F4F      		sbci r19,-1
+ 110 0064 85E1      		ldi r24,lo8(21)
+ 111 0066 D901      		movw r26,r18
+ 112               		0:
+ 113 0068 1D92      		st X+,__zero_reg__
+ 114 006a 8A95      		dec r24
+ 115 006c 01F4      		brne 0b
+ 116               	.LVL3:
+  46:lib.c         **** 
+  47:lib.c         ****     /* Initialize first location in "reverse" array to 0 */
+  48:lib.c         ****     rev[STRLEN] = 0;
+  49:lib.c         ****     s = &rev[STRLEN];     /* Will access reverse array by pointer "s" */
+ 117               		.loc 1 49 0
+ 118 006e 2C5E      		subi r18,-20
+ 119 0070 3F4F      		sbci r19,-1
+ 120               	.LVL4:
+ 121               	.L7:
+  50:lib.c         ****     /*
+  51:lib.c         **** 	 * This loop divides the integer by the base. The remainder of that
+  52:lib.c         ****      * division indicates the "character" for that position in the string.
+  53:lib.c         ****      * This is converter to an ASCII character and saved in "rev".
+  54:lib.c         ****      *
+  55:lib.c         ****      * The quotient is the term for the next division.
+  56:lib.c         ****      *
+  57:lib.c         ****      * End result is a string that consists of ASCII version of the input
+  58:lib.c         ****      * number. 
+  59:lib.c         **** 	 */
+  60:lib.c         ****     while (i)     /* Continue until i == NULL */
+  61:lib.c         ****     {
+  62:lib.c         ****         rem = i % base;     /* Get character for this position in string */
+ 122               		.loc 1 62 0
+ 123 0072 CF01      		movw r24,r30
+ 124 0074 B701      		movw r22,r14
+ 125 0076 0E94 0000 		call __divmodhi4
+ 126               	.LVL5:
+  63:lib.c         ****         if (rem < 10)
+ 127               		.loc 1 63 0
+ 128 007a 8A30      		cpi r24,10
+ 129 007c 9105      		cpc r25,__zero_reg__
+ 130 007e 04F4      		brge .L5
+  64:lib.c         ****         {
+  65:lib.c         ****             *--s = rem + '0';           /* Convert to ASCII */
+ 131               		.loc 1 65 0
+ 132 0080 D901      		movw r26,r18
+ 133 0082 805D      		subi r24,lo8(-(48))
+ 134               	.LVL6:
+ 135 0084 00C0      		rjmp .L11
+ 136               	.LVL7:
+ 137               	.L5:
+  66:lib.c         ****         }
+  67:lib.c         ****         else if (base == 16)
+ 138               		.loc 1 67 0
+ 139 0086 B0E1      		ldi r27,16
+ 140 0088 EB16      		cp r14,r27
+ 141 008a F104      		cpc r15,__zero_reg__
+ 142 008c 01F4      		brne .L6
+  68:lib.c         ****         {
+  69:lib.c         ****             *--s = "abcdef"[rem - 10];  /* Convert to ASCII */
+ 143               		.loc 1 69 0
+ 144 008e 8050      		subi r24,lo8(-(.LC0-10))
+ 145 0090 9040      		sbci r25,hi8(-(.LC0-10))
+ 146               	.LVL8:
+ 147 0092 DC01      		movw r26,r24
+ 148 0094 8C91      		ld r24,X
+ 149 0096 D901      		movw r26,r18
+ 150               	.L11:
+ 151 0098 8E93      		st -X,r24
+ 152 009a 9D01      		movw r18,r26
+ 153               	.LVL9:
+ 154               	.L6:
+  70:lib.c         ****         }
+  71:lib.c         ****         i /= base;
+ 155               		.loc 1 71 0
+ 156 009c CF01      		movw r24,r30
+ 157 009e B701      		movw r22,r14
+ 158 00a0 0E94 0000 		call __divmodhi4
+ 159 00a4 FB01      		movw r30,r22
+ 160               	.LVL10:
+  60:lib.c         ****     {
+ 161               		.loc 1 60 0
+ 162 00a6 3097      		sbiw r30,0
+ 163 00a8 01F4      		brne .L7
+ 164               	.L8:
+  72:lib.c         ****     }
+  73:lib.c         ****     /*
+  74:lib.c         **** 	 * Copy string in "rev" to string that will be returned.
+  75:lib.c         **** 	 * If the original number was negative, a minus sign has already
+  76:lib.c         ****      * been appended.  Last, append a NULL.
+  77:lib.c         **** 	 */
+  78:lib.c         ****     while (*s)
+ 165               		.loc 1 78 0
+ 166 00aa D901      		movw r26,r18
+ 167 00ac 8D91      		ld r24,X+
+ 168 00ae 9D01      		movw r18,r26
+ 169               	.LVL11:
+ 170 00b0 F801      		movw r30,r16
+ 171 00b2 A081      		ld r26,Z
+ 172 00b4 B181      		ldd r27,Z+1
+ 173 00b6 8823      		tst r24
+ 174 00b8 01F0      		breq .L13
+ 175               	.LVL12:
+  79:lib.c         ****     {
+  80:lib.c         ****         (*buf)[0] = *s++;
+ 176               		.loc 1 80 0
+ 177 00ba 8C93      		st X,r24
+  81:lib.c         ****         ++(*buf);
+ 178               		.loc 1 81 0
+ 179 00bc F801      		movw r30,r16
+ 180 00be 8081      		ld r24,Z
+ 181 00c0 9181      		ldd r25,Z+1
+ 182 00c2 0196      		adiw r24,1
+ 183 00c4 9183      		std Z+1,r25
+ 184 00c6 8083      		st Z,r24
+ 185 00c8 00C0      		rjmp .L8
+ 186               	.LVL13:
+ 187               	.L13:
+  82:lib.c         ****     }
+  83:lib.c         ****     (*buf)[0] = '\0';
+ 188               		.loc 1 83 0
+ 189 00ca 1C92      		st X,__zero_reg__
+ 190               	.LVL14:
+ 191               	.L1:
+ 192               	/* epilogue start */
+  84:lib.c         **** }
+ 193               		.loc 1 84 0
+ 194 00cc 6596      		adiw r28,21
+ 195 00ce 0FB6      		in __tmp_reg__,__SREG__
+ 196 00d0 F894      		cli
+ 197 00d2 DEBF      		out __SP_H__,r29
+ 198 00d4 0FBE      		out __SREG__,__tmp_reg__
+ 199 00d6 CDBF      		out __SP_L__,r28
+ 200 00d8 DF91      		pop r29
+ 201 00da CF91      		pop r28
+ 202 00dc 1F91      		pop r17
+ 203 00de 0F91      		pop r16
+ 204               	.LVL15:
+ 205 00e0 FF90      		pop r15
+ 206 00e2 EF90      		pop r14
+ 207               	.LVL16:
+ 208 00e4 0895      		ret
+ 209               		.cfi_endproc
+ 210               	.LFE0:
+ 212               	.global	_atoi
+ 214               	_atoi:
+ 215               	.LFB1:
+  85:lib.c         **** 
+  86:lib.c         **** /******************************************************************************
+  87:lib.c         ****  * Converts the passed string to an integer. It does not verify that the 
+  88:lib.c         ****  * contents of the string are valid integer characters.
+  89:lib.c         ****  *
+  90:lib.c         ****  * For some reason, I cannot use "base" in the calculation for power. Hence,
+  91:lib.c         ****  * I use an "if" statement to check if it's "10" or "16". Hence, only those
+  92:lib.c         ****  * values for base can be used. (Note: This is an issue with an old compiler
+  93:lib.c         ****  * on 68HC11. Not verified to still be a problem here).
+  94:lib.c         ****  ******************************************************************************/
+  95:lib.c         **** int _atoi(char *buf, int base)
+  96:lib.c         **** {
+ 216               		.loc 1 96 0
+ 217               		.cfi_startproc
+ 218               	.LVL17:
+ 219 00e6 DF92      		push r13
+ 220               	.LCFI8:
+ 221               		.cfi_def_cfa_offset 3
+ 222               		.cfi_offset 13, -2
+ 223 00e8 EF92      		push r14
+ 224               	.LCFI9:
+ 225               		.cfi_def_cfa_offset 4
+ 226               		.cfi_offset 14, -3
+ 227 00ea FF92      		push r15
+ 228               	.LCFI10:
+ 229               		.cfi_def_cfa_offset 5
+ 230               		.cfi_offset 15, -4
+ 231 00ec 0F93      		push r16
+ 232               	.LCFI11:
+ 233               		.cfi_def_cfa_offset 6
+ 234               		.cfi_offset 16, -5
+ 235 00ee 1F93      		push r17
+ 236               	.LCFI12:
+ 237               		.cfi_def_cfa_offset 7
+ 238               		.cfi_offset 17, -6
+ 239 00f0 CF93      		push r28
+ 240               	.LCFI13:
+ 241               		.cfi_def_cfa_offset 8
+ 242               		.cfi_offset 28, -7
+ 243 00f2 DF93      		push r29
+ 244               	.LCFI14:
+ 245               		.cfi_def_cfa_offset 9
+ 246               		.cfi_offset 29, -8
+ 247               	/* prologue: function */
+ 248               	/* frame size = 0 */
+ 249               	/* stack size = 7 */
+ 250               	.L__stack_usage = 7
+ 251 00f4 EC01      		movw r28,r24
+ 252 00f6 7B01      		movw r14,r22
+ 253               	.LVL18:
+  97:lib.c         **** 	int StrVal = 0;
+  98:lib.c         **** 	int StrLength;
+  99:lib.c         **** 	int i;
+ 100:lib.c         ****     int power = 1;
+ 101:lib.c         **** 	eBooleanType negNum = FALSE;
+ 102:lib.c         **** 
+ 103:lib.c         ****     StrLength = strlen(buf);
+ 254               		.loc 1 103 0
+ 255 00f8 FC01      		movw r30,r24
+ 256               		0:
+ 257 00fa 0190      		ld __tmp_reg__,Z+
+ 258 00fc 0020      		tst __tmp_reg__
+ 259 00fe 01F4      		brne 0b
+ 260 0100 3197      		sbiw r30,1
+ 261 0102 E81B      		sub r30,r24
+ 262 0104 F90B      		sbc r31,r25
+ 263               	.LVL19:
+ 104:lib.c         **** 	/*
+ 105:lib.c         **** 	 * First, test the leading character for a minus sign.  If present,
+ 106:lib.c         **** 	 * strip it off but set a flag so we will remember to return a 
+ 107:lib.c         **** 	 * negative result.
+ 108:lib.c         **** 	 */
+ 109:lib.c         **** 	if (*buf == '-')
+ 264               		.loc 1 109 0
+ 265 0106 8881      		ld r24,Y
+ 266               	.LVL20:
+ 267 0108 8D32      		cpi r24,lo8(45)
+ 268 010a 01F4      		brne .L26
+ 110:lib.c         **** 	{
+ 111:lib.c         **** 		buf++;
+ 269               		.loc 1 111 0
+ 270 010c 2196      		adiw r28,1
+ 271               	.LVL21:
+ 112:lib.c         **** 		negNum = TRUE;
+ 113:lib.c         **** 		StrLength--;
+ 272               		.loc 1 113 0
+ 273 010e 3197      		sbiw r30,1
+ 274               	.LVL22:
+ 112:lib.c         **** 		negNum = TRUE;
+ 275               		.loc 1 112 0
+ 276 0110 DD24      		clr r13
+ 277 0112 D394      		inc r13
+ 278 0114 00C0      		rjmp .L15
+ 279               	.LVL23:
+ 280               	.L26:
+ 101:lib.c         **** 
+ 281               		.loc 1 101 0
+ 282 0116 D12C      		mov r13,__zero_reg__
+ 283               	.LVL24:
+ 284               	.L15:
+ 100:lib.c         **** 	eBooleanType negNum = FALSE;
+ 285               		.loc 1 100 0
+ 286 0118 81E0      		ldi r24,lo8(1)
+ 287 011a 90E0      		ldi r25,0
+ 114:lib.c         **** 	}
+ 115:lib.c         **** 
+ 116:lib.c         ****     // Calculate power of base for first digit
+ 117:lib.c         ****     for (i = 0; i < StrLength - 1; ++i)
+ 288               		.loc 1 117 0
+ 289 011c 20E0      		ldi r18,0
+ 290 011e 30E0      		ldi r19,0
+ 291 0120 AF01      		movw r20,r30
+ 292 0122 4150      		subi r20,1
+ 293 0124 5109      		sbc r21,__zero_reg__
+ 118:lib.c         ****     {
+ 119:lib.c         ****         if (base == 10)
+ 120:lib.c         ****         {
+ 121:lib.c         ****             power *= 10;
+ 294               		.loc 1 121 0
+ 295 0126 6AE0      		ldi r22,lo8(10)
+ 296               	.LVL25:
+ 297               	.L16:
+ 117:lib.c         ****     {
+ 298               		.loc 1 117 0 discriminator 1
+ 299 0128 2417      		cp r18,r20
+ 300 012a 3507      		cpc r19,r21
+ 301 012c 04F4      		brge .L29
+ 119:lib.c         ****         {
+ 302               		.loc 1 119 0
+ 303 012e 7AE0      		ldi r23,10
+ 304 0130 E716      		cp r14,r23
+ 305 0132 F104      		cpc r15,__zero_reg__
+ 306 0134 01F4      		brne .L17
+ 307               		.loc 1 121 0
+ 308 0136 DC01      		movw r26,r24
+ 309 0138 6A9F      		mul r22,r26
+ 310 013a C001      		movw r24,r0
+ 311 013c 6B9F      		mul r22,r27
+ 312 013e 900D      		add r25,r0
+ 313 0140 1124      		clr __zero_reg__
+ 314               	.LVL26:
+ 315 0142 00C0      		rjmp .L18
+ 316               	.L17:
+ 122:lib.c         ****         }
+ 123:lib.c         **** 
+ 124:lib.c         ****         if (base == 16)
+ 317               		.loc 1 124 0
+ 318 0144 B0E1      		ldi r27,16
+ 319 0146 EB16      		cp r14,r27
+ 320 0148 F104      		cpc r15,__zero_reg__
+ 321 014a 01F4      		brne .L18
+ 125:lib.c         ****         {
+ 126:lib.c         ****             power *= 16;
+ 322               		.loc 1 126 0
+ 323 014c 74E0      		ldi r23,4
+ 324               		1:
+ 325 014e 880F      		lsl r24
+ 326 0150 991F      		rol r25
+ 327 0152 7A95      		dec r23
+ 328 0154 01F4      		brne 1b
+ 329               	.LVL27:
+ 330               	.L18:
+ 117:lib.c         ****     {
+ 331               		.loc 1 117 0 discriminator 2
+ 332 0156 2F5F      		subi r18,-1
+ 333 0158 3F4F      		sbci r19,-1
+ 334               	.LVL28:
+ 335 015a 00C0      		rjmp .L16
+ 336               	.L29:
+ 117:lib.c         ****     {
+ 337               		.loc 1 117 0 is_stmt 0
+ 338 015c 8E01      		movw r16,r28
+ 339 015e 20E0      		ldi r18,0
+ 340 0160 30E0      		ldi r19,0
+ 341               	.LVL29:
+ 342               	.L20:
+ 343 0162 A801      		movw r20,r16
+ 344 0164 4C1B      		sub r20,r28
+ 345 0166 5D0B      		sbc r21,r29
+ 127:lib.c         ****         }
+ 128:lib.c         ****     }
+ 129:lib.c         **** 
+ 130:lib.c         ****     for (i = 0; i < StrLength; ++i)
+ 346               		.loc 1 130 0 is_stmt 1 discriminator 1
+ 347 0168 4E17      		cp r20,r30
+ 348 016a 5F07      		cpc r21,r31
+ 349 016c 04F4      		brge .L30
+ 131:lib.c         **** 	{
+ 132:lib.c         ****         if ((*buf >= 'a') && (*buf <= 'f'))
+ 350               		.loc 1 132 0
+ 351 016e D801      		movw r26,r16
+ 352 0170 6D91      		ld r22,X+
+ 353 0172 8D01      		movw r16,r26
+ 354               	.LVL30:
+ 355 0174 7FE9      		ldi r23,lo8(-97)
+ 356 0176 760F      		add r23,r22
+ 357 0178 462F      		mov r20,r22
+ 358 017a 50E0      		ldi r21,0
+ 359 017c 7630      		cpi r23,lo8(6)
+ 360 017e 00F4      		brsh .L21
+ 133:lib.c         ****         {   // lower-case ascii
+ 134:lib.c         ****             StrVal += ((*buf - 'a') + 10) * power;
+ 361               		.loc 1 134 0
+ 362 0180 4755      		subi r20,87
+ 363 0182 5109      		sbc r21,__zero_reg__
+ 364 0184 00C0      		rjmp .L28
+ 365               	.L21:
+ 135:lib.c         ****         }
+ 136:lib.c         ****         else if ((*buf >= 'A') && (*buf <= 'F'))
+ 366               		.loc 1 136 0
+ 367 0186 6154      		subi r22,lo8(-(-65))
+ 368 0188 6630      		cpi r22,lo8(6)
+ 369 018a 00F4      		brsh .L23
+ 137:lib.c         ****         {   // upper-case ascii
+ 138:lib.c         ****             StrVal += ((*buf - 'A') + 10) * power;
+ 370               		.loc 1 138 0
+ 371 018c 4753      		subi r20,55
+ 372 018e 5109      		sbc r21,__zero_reg__
+ 373 0190 00C0      		rjmp .L28
+ 374               	.L23:
+ 139:lib.c         ****         }
+ 140:lib.c         ****         else
+ 141:lib.c         ****         {
+ 142:lib.c         **** 		    StrVal += (*buf - '0') * power;
+ 375               		.loc 1 142 0
+ 376 0192 4053      		subi r20,48
+ 377 0194 5109      		sbc r21,__zero_reg__
+ 378               	.L28:
+ 379 0196 489F      		mul r20,r24
+ 380 0198 B001      		movw r22,r0
+ 381 019a 499F      		mul r20,r25
+ 382 019c 700D      		add r23,r0
+ 383 019e 589F      		mul r21,r24
+ 384 01a0 700D      		add r23,r0
+ 385 01a2 1124      		clr r1
+ 386 01a4 260F      		add r18,r22
+ 387 01a6 371F      		adc r19,r23
+ 388               	.LVL31:
+ 143:lib.c         ****         }
+ 144:lib.c         **** 
+ 145:lib.c         ****         // Move to next character. Reduce power by base
+ 146:lib.c         **** 		++buf;
+ 147:lib.c         ****         power /= base;
+ 389               		.loc 1 147 0
+ 390 01a8 B701      		movw r22,r14
+ 391 01aa 0E94 0000 		call __divmodhi4
+ 392               	.LVL32:
+ 393 01ae CB01      		movw r24,r22
+ 394               	.LVL33:
+ 395 01b0 00C0      		rjmp .L20
+ 396               	.LVL34:
+ 397               	.L30:
+ 148:lib.c         **** 	}
+ 149:lib.c         **** 
+ 150:lib.c         ****     return negNum ? -StrVal : StrVal;
+ 398               		.loc 1 150 0
+ 399 01b2 DD20      		tst r13
+ 400 01b4 01F0      		breq .L27
+ 401               		.loc 1 150 0 is_stmt 0 discriminator 1
+ 402 01b6 8827      		clr r24
+ 403 01b8 9927      		clr r25
+ 404 01ba 821B      		sub r24,r18
+ 405 01bc 930B      		sbc r25,r19
+ 406               	.LVL35:
+ 407 01be 00C0      		rjmp .L25
+ 408               	.LVL36:
+ 409               	.L27:
+ 410 01c0 C901      		movw r24,r18
+ 411               	.LVL37:
+ 412               	.L25:
+ 413               	/* epilogue start */
+ 151:lib.c         **** }
+ 414               		.loc 1 151 0 is_stmt 1 discriminator 4
+ 415 01c2 DF91      		pop r29
+ 416 01c4 CF91      		pop r28
+ 417               	.LVL38:
+ 418 01c6 1F91      		pop r17
+ 419 01c8 0F91      		pop r16
+ 420               	.LVL39:
+ 421 01ca FF90      		pop r15
+ 422 01cc EF90      		pop r14
+ 423               	.LVL40:
+ 424 01ce DF90      		pop r13
+ 425               	.LVL41:
+ 426 01d0 0895      		ret
+ 427               		.cfi_endproc
+ 428               	.LFE1:
+ 430               	.Letext0:
+ 431               		.file 2 "lib.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 lib.c
+     /tmp/cc2Ro9rA.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cc2Ro9rA.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cc2Ro9rA.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cc2Ro9rA.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cc2Ro9rA.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cc2Ro9rA.s:16     .text:0000000000000000 _itoa
+     /tmp/cc2Ro9rA.s:214    .text:00000000000000e6 _atoi
+     /tmp/cc2Ro9rA.s:11     .rodata.str1.1:0000000000000000 .LC0
+
+UNDEFINED SYMBOLS
+__divmodhi4
+__do_copy_data
